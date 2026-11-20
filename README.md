@@ -4,7 +4,7 @@ A tiny macOS menu-bar app that adds a **LoopCam** virtual camera. Pick it once i
 
 - **Live**: passes your real webcam through.
 - **Loop**: plays today's clip on repeat. Clips are saved as forward-then-reverse "ping-pong" loops, so there's no visible jump.
-- **Record Today's Loop**: records 10 s from your webcam and builds the loop.
+- **Record Loop**: records 10 s from your webcam and builds the loop. Each new loop replaces the previous one, so only one file is ever kept.
 - **⌃⌥⌘L** toggles Live/Loop from anywhere.
 - The real webcam only runs while some app is actually using LoopCam.
 

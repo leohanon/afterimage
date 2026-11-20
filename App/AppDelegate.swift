@@ -262,7 +262,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         toggle.keyEquivalentModifierMask = [.control, .option, .command]
         menu.addItem(.separator())
 
-        let rec = menu.addItem(withTitle: recordingCountdown != nil ? "Recording…" : processing ? "Making loop…" : "Record Today's Loop (\(Int(Self.recordSeconds)) s)",
+        let rec = menu.addItem(withTitle: recordingCountdown != nil ? "Recording…" : processing ? "Making loop…" : "Record Loop",
                                action: #selector(recordLoop), keyEquivalent: "")
         rec.isEnabled = recordingCountdown == nil && !processing
         menu.addItem(withTitle: loopDescription(), action: nil, keyEquivalent: "").isEnabled = false
