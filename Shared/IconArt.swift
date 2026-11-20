@@ -1,7 +1,7 @@
 import CoreGraphics
 import Foundation
 
-/// The LoopCam mark, drawn in a 112×112 design space (y pointing down).
+/// The Afterimage mark, drawn in a 112×112 design space (y pointing down).
 /// Used for both the app icon (scripts/make-icon.swift) and the menu-bar glyphs.
 enum IconArt {
     static let center = CGPoint(x: 56, y: 56)

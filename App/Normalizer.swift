@@ -14,8 +14,8 @@ final class Normalizer {
         VTSessionSetProperty(session, key: kVTPixelTransferPropertyKey_ScalingMode, value: kVTScalingMode_CropSourceToCleanAperture)
 
         let attrs: [String: Any] = [
-            kCVPixelBufferWidthKey as String: LoopCam.width,
-            kCVPixelBufferHeightKey as String: LoopCam.height,
+            kCVPixelBufferWidthKey as String: CamConfig.width,
+            kCVPixelBufferHeightKey as String: CamConfig.height,
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
             kCVPixelBufferIOSurfacePropertiesKey as String: [:],
         ]
@@ -25,8 +25,8 @@ final class Normalizer {
     }
 
     func normalize(_ src: CVPixelBuffer) -> CVPixelBuffer? {
-        if CVPixelBufferGetWidth(src) == Int(LoopCam.width),
-           CVPixelBufferGetHeight(src) == Int(LoopCam.height),
+        if CVPixelBufferGetWidth(src) == Int(CamConfig.width),
+           CVPixelBufferGetHeight(src) == Int(CamConfig.height),
            CVPixelBufferGetPixelFormatType(src) == kCVPixelFormatType_32BGRA {
             return src
         }

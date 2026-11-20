@@ -2,7 +2,7 @@ import CoreMediaIO
 import CoreVideo
 import Foundation
 
-/// Talks to the LoopCam camera extension through the CoreMediaIO C API:
+/// Talks to the Afterimage camera extension through the CoreMediaIO C API:
 /// finds the virtual device, reads whether anyone is watching, and pushes
 /// frames into its sink stream.
 final class FrameSink {
@@ -11,11 +11,11 @@ final class FrameSink {
     private var queue: CMSimpleQueue?
     private(set) var isStarted = false
 
-    /// Finds the LoopCam device. Returns false if the extension isn't installed yet.
+    /// Finds the Afterimage device. Returns false if the extension isn't installed yet.
     @discardableResult
     func connect() -> Bool {
         if deviceID != 0 { return true }
-        for dev in Self.allDevices() where Self.string(dev, selector: CMIOObjectPropertySelector(kCMIODevicePropertyDeviceUID)) == LoopCam.deviceUID {
+        for dev in Self.allDevices() where Self.string(dev, selector: CMIOObjectPropertySelector(kCMIODevicePropertyDeviceUID)) == CamConfig.deviceUID {
             let streams: [CMIOStreamID] = Self.array(dev, selector: CMIOObjectPropertySelector(kCMIODevicePropertyStreams))
             // CMIO direction 0 = "output" (frames flow app → device): our sink.
             // Direction 1 is the capture stream that Zoom reads.
@@ -28,10 +28,10 @@ final class FrameSink {
         return false
     }
 
-    /// True while some other app (Zoom, etc.) is streaming from LoopCam.
+    /// True while some other app (Zoom, etc.) is streaming from Afterimage.
     func isCameraInUse() -> Bool {
         guard connect() else { return false }
-        return Self.string(deviceID, selector: LoopCam.activePropertySelector) == "1"
+        return Self.string(deviceID, selector: CamConfig.activePropertySelector) == "1"
     }
 
     func start() {
@@ -39,14 +39,14 @@ final class FrameSink {
         var unmanaged: Unmanaged<CMSimpleQueue>?
         let err = CMIOStreamCopyBufferQueue(sinkStreamID, { _, _, _ in }, nil, &unmanaged)
         guard err == noErr, let q = unmanaged?.takeRetainedValue() else {
-            NSLog("LoopCam: CMIOStreamCopyBufferQueue failed \(err)")
+            NSLog("Afterimage: CMIOStreamCopyBufferQueue failed \(err)")
             reset()
             return
         }
         queue = q
         let startErr = CMIODeviceStartStream(deviceID, sinkStreamID)
         guard startErr == noErr else {
-            NSLog("LoopCam: CMIODeviceStartStream failed \(startErr)")
+            NSLog("Afterimage: CMIODeviceStartStream failed \(startErr)")
             reset()
             return
         }
@@ -75,7 +75,7 @@ final class FrameSink {
         var fd: CMFormatDescription?
         CMVideoFormatDescriptionCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixelBuffer, formatDescriptionOut: &fd)
         guard let fd else { return }
-        var timing = CMSampleTimingInfo(duration: CMTime(value: 1, timescale: LoopCam.fps),
+        var timing = CMSampleTimingInfo(duration: CMTime(value: 1, timescale: CamConfig.fps),
                                         presentationTimeStamp: CMClockGetTime(CMClockGetHostTimeClock()),
                                         decodeTimeStamp: .invalid)
         var sbuf: CMSampleBuffer?

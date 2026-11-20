@@ -13,7 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let sink = FrameSink()
     private let installer = ExtensionInstaller()
 
-    private let pumpQueue = DispatchQueue(label: "loopcam.pump")
+    private let pumpQueue = DispatchQueue(label: "afterimage.pump")
     private var pumpTimer: DispatchSourceTimer?
     private var lastSent: CVPixelBuffer?  // only touched on pumpQueue
     private var pollTimer: Timer?
@@ -33,8 +33,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     static let recordSeconds = 10.0
 
     static var supportDir: URL {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("LoopCam", isDirectory: true)
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let dir = base.appendingPathComponent("Afterimage", isDirectory: true)
+        // Carry over the loop recorded under the app's old name (LoopCam).
+        let old = base.appendingPathComponent("LoopCam", isDirectory: true)
+        if !FileManager.default.fileExists(atPath: dir.path), FileManager.default.fileExists(atPath: old.path) {
+            try? FileManager.default.moveItem(at: old, to: dir)
+        }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
@@ -76,7 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: State
 
-    /// Checks whether Zoom (or anything) is watching LoopCam and starts or
+    /// Checks whether Zoom (or anything) is watching Afterimage and starts or
     /// stops the real webcam accordingly, so its light is only on during calls.
     private func poll() {
         let nowInUse = sink.isCameraInUse()
@@ -108,7 +113,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Feeds the virtual camera at a steady 30 fps.
     private func startPump() {
         let t = DispatchSource.makeTimerSource(queue: pumpQueue)
-        t.schedule(deadline: .now(), repeating: 1.0 / Double(LoopCam.fps), leeway: .milliseconds(2))
+        t.schedule(deadline: .now(), repeating: 1.0 / Double(CamConfig.fps), leeway: .milliseconds(2))
         t.setEventHandler { [weak self] in
             guard let self else { return }
             guard self.sink.isStarted else { self.lastSent = nil; return }
@@ -184,7 +189,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func showError(_ error: Error) {
         let alert = NSAlert()
-        alert.messageText = "LoopCam"
+        alert.messageText = "Afterimage"
         alert.informativeText = error.localizedDescription
         NSApp.activate(ignoringOtherApps: true)
         alert.runModal()
@@ -269,7 +274,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         // Own selector rather than NSApplication.terminate(_:), which macOS 26
         // recognizes as a standard action and decorates with an icon.
-        menu.addItem(withTitle: "Quit LoopCam", action: #selector(quit), keyEquivalent: "q")
+        menu.addItem(withTitle: "Quit Afterimage", action: #selector(quit), keyEquivalent: "q")
 
         for item in menu.items where item.action != nil {
             item.target = self

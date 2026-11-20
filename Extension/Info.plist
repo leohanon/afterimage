@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>LoopCam</string>
+	<string>Afterimage</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -26,6 +26,6 @@
 		<string>$(TeamIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	</dict>
 	<key>NSSystemExtensionUsageDescription</key>
-	<string>Adds the LoopCam virtual camera.</string>
+	<string>Adds the Afterimage virtual camera.</string>
 </dict>
 </plist>

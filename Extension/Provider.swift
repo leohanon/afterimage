@@ -5,13 +5,13 @@ import CoreVideo
 import Foundation
 import os.log
 
-private let log = Logger(subsystem: LoopCam.extensionBundleID, category: "ext")
+private let log = Logger(subsystem: CamConfig.extensionBundleID, category: "ext")
 
 // MARK: - Device
 
 /// The virtual camera. It has two streams:
 ///  - a *source* stream that apps like Zoom read from, and
-///  - a *sink* stream that the LoopCam menu-bar app writes frames into.
+///  - a *sink* stream that the Afterimage menu-bar app writes frames into.
 /// Frames arriving on the sink are forwarded straight to the source. When no
 /// frames arrive (app not running), a placeholder frame is shown instead.
 final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
@@ -24,7 +24,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
     private let poolAttrs: NSDictionary
 
     private var sourceClients = 0
-    private let queue = DispatchQueue(label: "loopcam.device")
+    private let queue = DispatchQueue(label: "afterimage.device")
     private var idleTimer: DispatchSourceTimer?
     private var lastSinkFrame: UInt64 = 0
     private var placeholder: CVPixelBuffer?
@@ -33,13 +33,13 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
         var fd: CMFormatDescription?
         CMVideoFormatDescriptionCreate(allocator: kCFAllocatorDefault,
                                        codecType: kCVPixelFormatType_32BGRA,
-                                       width: LoopCam.width, height: LoopCam.height,
+                                       width: CamConfig.width, height: CamConfig.height,
                                        extensions: nil, formatDescriptionOut: &fd)
         formatDescription = fd!
 
         let attrs: [String: Any] = [
-            kCVPixelBufferWidthKey as String: LoopCam.width,
-            kCVPixelBufferHeightKey as String: LoopCam.height,
+            kCVPixelBufferWidthKey as String: CamConfig.width,
+            kCVPixelBufferHeightKey as String: CamConfig.height,
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
             kCVPixelBufferIOSurfacePropertiesKey as String: [:],
         ]
@@ -51,23 +51,23 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
         super.init()
 
         device = CMIOExtensionDevice(localizedName: localizedName,
-                                     deviceID: UUID(uuidString: LoopCam.deviceUID)!,
-                                     legacyDeviceID: LoopCam.deviceUID,
+                                     deviceID: UUID(uuidString: CamConfig.deviceUID)!,
+                                     legacyDeviceID: CamConfig.deviceUID,
                                      source: self)
 
         let format = CMIOExtensionStreamFormat(formatDescription: formatDescription,
-                                               maxFrameDuration: CMTime(value: 1, timescale: LoopCam.fps),
-                                               minFrameDuration: CMTime(value: 1, timescale: LoopCam.fps),
+                                               maxFrameDuration: CMTime(value: 1, timescale: CamConfig.fps),
+                                               minFrameDuration: CMTime(value: 1, timescale: CamConfig.fps),
                                                validFrameDurations: nil)
 
         sourceStream = StreamSource(device: self, format: format)
-        sourceStream.stream = CMIOExtensionStream(localizedName: "LoopCam.Video",
-                                                  streamID: UUID(uuidString: LoopCam.sourceStreamUID)!,
+        sourceStream.stream = CMIOExtensionStream(localizedName: "Afterimage.Video",
+                                                  streamID: UUID(uuidString: CamConfig.sourceStreamUID)!,
                                                   direction: .source, clockType: .hostTime,
                                                   source: sourceStream)
         sinkStream = SinkSource(device: self, format: format)
-        sinkStream.stream = CMIOExtensionStream(localizedName: "LoopCam.Sink",
-                                                streamID: UUID(uuidString: LoopCam.sinkStreamUID)!,
+        sinkStream.stream = CMIOExtensionStream(localizedName: "Afterimage.Sink",
+                                                streamID: UUID(uuidString: CamConfig.sinkStreamUID)!,
                                                 direction: .sink, clockType: .hostTime,
                                                 source: sinkStream)
         do {
@@ -81,7 +81,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
     // MARK: Device properties
 
     var availableProperties: Set<CMIOExtensionProperty> {
-        [.deviceTransportType, .deviceModel, CMIOExtensionProperty(rawValue: LoopCam.activePropertyName)]
+        [.deviceTransportType, .deviceModel, CMIOExtensionProperty(rawValue: CamConfig.activePropertyName)]
     }
 
     func deviceProperties(forProperties properties: Set<CMIOExtensionProperty>) throws -> CMIOExtensionDeviceProperties {
@@ -90,9 +90,9 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
             props.transportType = kIOAudioDeviceTransportTypeVirtual
         }
         if properties.contains(.deviceModel) {
-            props.model = LoopCam.deviceName
+            props.model = CamConfig.deviceName
         }
-        let active = CMIOExtensionProperty(rawValue: LoopCam.activePropertyName)
+        let active = CMIOExtensionProperty(rawValue: CamConfig.activePropertyName)
         if properties.contains(active) {
             let value = queue.sync { sourceClients > 0 ? "1" : "0" }
             props.setPropertyState(CMIOExtensionPropertyState(value: value as NSString), forProperty: active)
@@ -121,7 +121,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
     }
 
     private func notifyActiveChanged() {
-        let active = CMIOExtensionProperty(rawValue: LoopCam.activePropertyName)
+        let active = CMIOExtensionProperty(rawValue: CamConfig.activePropertyName)
         let value = queue.sync { sourceClients > 0 ? "1" : "0" }
         let props = CMIOExtensionDeviceProperties(dictionary: [:])
         props.setPropertyState(CMIOExtensionPropertyState(value: value as NSString), forProperty: active)
@@ -131,7 +131,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
     /// While someone watches but the app isn't feeding frames, show a placeholder.
     private func startIdleTimer() {
         let t = DispatchSource.makeTimerSource(queue: queue)
-        t.schedule(deadline: .now(), repeating: 1.0 / Double(LoopCam.fps))
+        t.schedule(deadline: .now(), repeating: 1.0 / Double(CamConfig.fps))
         t.setEventHandler { [weak self] in
             guard let self else { return }
             let now = mach_absolute_time()
@@ -142,7 +142,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
         idleTimer = t
     }
 
-    // MARK: Sink (LoopCam app side)
+    // MARK: Sink (Afterimage app side)
 
     func received(_ sbuf: CMSampleBuffer) {
         guard let pb = CMSampleBufferGetImageBuffer(sbuf) else { return }
@@ -155,7 +155,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
 
     private func emit(_ pixelBuffer: CVPixelBuffer) {
         let hostNanos = nanos(mach_absolute_time())
-        var timing = CMSampleTimingInfo(duration: CMTime(value: 1, timescale: LoopCam.fps),
+        var timing = CMSampleTimingInfo(duration: CMTime(value: 1, timescale: CamConfig.fps),
                                         presentationTimeStamp: CMTime(value: CMTimeValue(hostNanos), timescale: 1_000_000_000),
                                         decodeTimeStamp: .invalid)
         var fd: CMFormatDescription?
@@ -170,7 +170,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
         }
     }
 
-    /// Dark gray frame with "LoopCam" in the middle, drawn once and reused.
+    /// Dark gray frame with "Afterimage" in the middle, drawn once and reused.
     private func placeholderBuffer() -> CVPixelBuffer? {
         if let placeholder { return placeholder }
         var pb: CVPixelBuffer?
@@ -188,7 +188,7 @@ final class DeviceSource: NSObject, CMIOExtensionDeviceSource {
         let ns = NSGraphicsContext(cgContext: ctx, flipped: false)
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = ns
-        let text = NSAttributedString(string: "LoopCam", attributes: [
+        let text = NSAttributedString(string: "Afterimage", attributes: [
             .font: NSFont.systemFont(ofSize: 56, weight: .semibold),
             .foregroundColor: NSColor(white: 0.55, alpha: 1),
         ])
@@ -225,7 +225,7 @@ final class StreamSource: NSObject, CMIOExtensionStreamSource {
         let props = CMIOExtensionStreamProperties(dictionary: [:])
         if properties.contains(.streamActiveFormatIndex) { props.activeFormatIndex = 0 }
         if properties.contains(.streamFrameDuration) {
-            props.frameDuration = CMTime(value: 1, timescale: LoopCam.fps)
+            props.frameDuration = CMTime(value: 1, timescale: CamConfig.fps)
         }
         return props
     }
@@ -236,7 +236,7 @@ final class StreamSource: NSObject, CMIOExtensionStreamSource {
     func stopStream() throws { device.sourceStopped() }
 }
 
-// MARK: - Sink stream (written by the LoopCam app)
+// MARK: - Sink stream (written by the Afterimage app)
 
 final class SinkSource: NSObject, CMIOExtensionStreamSource {
     var stream: CMIOExtensionStream!
@@ -260,7 +260,7 @@ final class SinkSource: NSObject, CMIOExtensionStreamSource {
         let props = CMIOExtensionStreamProperties(dictionary: [:])
         if properties.contains(.streamActiveFormatIndex) { props.activeFormatIndex = 0 }
         if properties.contains(.streamFrameDuration) {
-            props.frameDuration = CMTime(value: 1, timescale: LoopCam.fps)
+            props.frameDuration = CMTime(value: 1, timescale: CamConfig.fps)
         }
         if properties.contains(.streamSinkBufferQueueSize) { props.sinkBufferQueueSize = 4 }
         if properties.contains(.streamSinkBuffersRequiredForStartup) { props.sinkBuffersRequiredForStartup = 1 }
@@ -275,7 +275,7 @@ final class SinkSource: NSObject, CMIOExtensionStreamSource {
     }
 
     func startStream() throws {
-        guard let client else { throw NSError(domain: "LoopCam", code: 1) }
+        guard let client else { throw NSError(domain: "Afterimage", code: 1) }
         running = true
         consume(from: client)
     }
@@ -312,7 +312,7 @@ final class ProviderSource: NSObject, CMIOExtensionProviderSource {
     init(clientQueue: DispatchQueue?) {
         super.init()
         provider = CMIOExtensionProvider(source: self, clientQueue: clientQueue)
-        deviceSource = DeviceSource(localizedName: LoopCam.deviceName)
+        deviceSource = DeviceSource(localizedName: CamConfig.deviceName)
         do { try provider.addDevice(deviceSource.device) } catch { fatalError("addDevice failed: \(error)") }
     }
 
@@ -323,7 +323,7 @@ final class ProviderSource: NSObject, CMIOExtensionProviderSource {
 
     func providerProperties(forProperties properties: Set<CMIOExtensionProperty>) throws -> CMIOExtensionProviderProperties {
         let props = CMIOExtensionProviderProperties(dictionary: [:])
-        if properties.contains(.providerManufacturer) { props.manufacturer = LoopCam.manufacturer }
+        if properties.contains(.providerManufacturer) { props.manufacturer = CamConfig.manufacturer }
         return props
     }
 

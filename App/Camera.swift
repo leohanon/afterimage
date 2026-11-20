@@ -5,7 +5,7 @@ import CoreVideo
 /// while recording, also writes frames to a movie file.
 final class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     private let session = AVCaptureSession()
-    private let queue = DispatchQueue(label: "loopcam.camera")
+    private let queue = DispatchQueue(label: "afterimage.camera")
     private let normalizer = Normalizer()
     private let lock = NSLock()
     private var _latest: CVPixelBuffer?
@@ -20,12 +20,12 @@ final class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
 
     var isRunning: Bool { session.isRunning }
 
-    /// Every real camera (never LoopCam itself).
+    /// Every real camera (never Afterimage itself).
     static func availableDevices() -> [AVCaptureDevice] {
         AVCaptureDevice.DiscoverySession(
             deviceTypes: [.external, .builtInWideAngleCamera, .continuityCamera],
             mediaType: .video, position: .unspecified
-        ).devices.filter { $0.localizedName != LoopCam.deviceName && $0.uniqueID != LoopCam.deviceUID }
+        ).devices.filter { $0.localizedName != CamConfig.deviceName && $0.uniqueID != CamConfig.deviceUID }
     }
 
     /// The camera chosen in the menu, else a USB webcam, else the built-in one.
@@ -59,7 +59,7 @@ final class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     private func configure() -> Bool {
         if configured { return true }
         guard let device = Self.pickDevice(), let input = try? AVCaptureDeviceInput(device: device) else {
-            NSLog("LoopCam: no webcam found")
+            NSLog("Afterimage: no webcam found")
             return false
         }
         session.beginConfiguration()
@@ -177,8 +177,8 @@ final class Recorder {
 func videoSettings() -> [String: Any] {
     [
         AVVideoCodecKey: AVVideoCodecType.h264,
-        AVVideoWidthKey: LoopCam.width,
-        AVVideoHeightKey: LoopCam.height,
+        AVVideoWidthKey: CamConfig.width,
+        AVVideoHeightKey: CamConfig.height,
         AVVideoCompressionPropertiesKey: [AVVideoAverageBitRateKey: 8_000_000],
     ]
 }

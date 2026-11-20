@@ -1,4 +1,4 @@
-name: LoopCam
+name: Afterimage
 options:
   bundleIdPrefix: com.leohanon
   deploymentTarget:
@@ -13,14 +13,14 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     ENABLE_HARDENED_RUNTIME: YES
 targets:
-  LoopCam:
+  Afterimage:
     type: application
     platform: macOS
     sources:
       - App
       - Shared
     dependencies:
-      - target: LoopCamExtension
+      - target: AfterimageExtension
         embed: true
         codeSign: true
         copy:
@@ -28,14 +28,14 @@ targets:
           subpath: ../Library/SystemExtensions
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.leohanon.LoopCam
-        CODE_SIGN_ENTITLEMENTS: App/LoopCam.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.leohanon.Afterimage
+        CODE_SIGN_ENTITLEMENTS: App/Afterimage.entitlements
         GENERATE_INFOPLIST_FILE: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_LSUIElement: YES
-        INFOPLIST_KEY_NSCameraUsageDescription: LoopCam uses your webcam for the live feed and to record your daily loop.
-        INFOPLIST_KEY_CFBundleDisplayName: LoopCam
-  LoopCamExtension:
+        INFOPLIST_KEY_NSCameraUsageDescription: Afterimage uses your webcam for the live feed and to record your daily loop.
+        INFOPLIST_KEY_CFBundleDisplayName: Afterimage
+  AfterimageExtension:
     type: system-extension
     platform: macOS
     sources:
@@ -43,8 +43,8 @@ targets:
       - Shared
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.leohanon.LoopCam.Extension
-        PRODUCT_NAME: com.leohanon.LoopCam.Extension
+        PRODUCT_BUNDLE_IDENTIFIER: com.leohanon.Afterimage.Extension
+        PRODUCT_NAME: com.leohanon.Afterimage.Extension
         INFOPLIST_FILE: Extension/Info.plist
         CODE_SIGN_ENTITLEMENTS: Extension/Extension.entitlements
         SKIP_INSTALL: YES

@@ -16,7 +16,7 @@ enum MenuIcon {
             return true
         }
         img.isTemplate = true
-        img.accessibilityDescription = "LoopCam"
+        img.accessibilityDescription = "Afterimage"
         cache[glyph] = img
         return img
     }

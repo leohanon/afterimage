@@ -6,7 +6,7 @@ final class ExtensionInstaller: NSObject, OSSystemExtensionRequestDelegate {
     var onStatus: ((String) -> Void)?
 
     func activate() {
-        let req = OSSystemExtensionRequest.activationRequest(forExtensionWithIdentifier: LoopCam.extensionBundleID, queue: .main)
+        let req = OSSystemExtensionRequest.activationRequest(forExtensionWithIdentifier: CamConfig.extensionBundleID, queue: .main)
         req.delegate = self
         OSSystemExtensionManager.shared.submitRequest(req)
     }
@@ -17,7 +17,7 @@ final class ExtensionInstaller: NSObject, OSSystemExtensionRequestDelegate {
     }
 
     func requestNeedsUserApproval(_ request: OSSystemExtensionRequest) {
-        onStatus?("Approve LoopCam in System Settings → General → Login Items & Extensions → Camera Extensions.")
+        onStatus?("Approve Afterimage in System Settings → General → Login Items & Extensions → Camera Extensions.")
     }
 
     func request(_ request: OSSystemExtensionRequest, didFinishWithResult result: OSSystemExtensionRequest.Result) {
@@ -28,7 +28,7 @@ final class ExtensionInstaller: NSObject, OSSystemExtensionRequestDelegate {
         let ns = error as NSError
         var msg = "Camera install failed: \(error.localizedDescription)"
         if ns.domain == OSSystemExtensionErrorDomain, ns.code == OSSystemExtensionError.unsupportedParentBundleLocation.rawValue {
-            msg = "Move LoopCam.app to /Applications, then reopen it."
+            msg = "Move Afterimage.app to /Applications, then reopen it."
         }
         onStatus?(msg)
     }
