@@ -31,6 +31,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.leohanon.LoopCam
         CODE_SIGN_ENTITLEMENTS: App/LoopCam.entitlements
         GENERATE_INFOPLIST_FILE: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_LSUIElement: YES
         INFOPLIST_KEY_NSCameraUsageDescription: LoopCam uses your webcam for the live feed and to record your daily loop.
         INFOPLIST_KEY_CFBundleDisplayName: LoopCam

@@ -236,12 +236,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         button.title = processing ? " …" : ""
-        let symbol: String
         switch mode {
-        case .live: symbol = inUse ? "video.fill" : "video"
-        case .loop: symbol = inUse ? "repeat.circle.fill" : "repeat.circle"
+        case .live: button.image = MenuIcon.image(inUse ? .liveActive : .liveIdle)
+        case .loop: button.image = MenuIcon.image(inUse ? .loopActive : .loopIdle)
         }
-        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: "LoopCam")
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
