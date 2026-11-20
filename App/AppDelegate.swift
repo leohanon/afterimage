@@ -1,6 +1,5 @@
 import AppKit
 import AVFoundation
-import Carbon
 import ServiceManagement
 
 enum Mode: String { case live, loop }
@@ -13,7 +12,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let player = LoopPlayer()
     private let sink = FrameSink()
     private let installer = ExtensionInstaller()
-    private var hotKey: HotKey?
 
     private let pumpQueue = DispatchQueue(label: "loopcam.pump")
     private var pumpTimer: DispatchSourceTimer?
@@ -65,11 +63,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         AVCaptureDevice.requestAccess(for: .video) { _ in }
 
         if FileManager.default.fileExists(atPath: Self.loopURL.path) { player.load(Self.loopURL) }
-
-        // ⌃⌥⌘L toggles Live / Loop from anywhere.
-        hotKey = HotKey(keyCode: kVK_ANSI_L, modifiers: controlKey | optionKey | cmdKey) { [weak self] in
-            self?.toggleMode()
-        }
 
         startPump()
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in self?.poll() }
@@ -137,11 +130,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         UserDefaults.standard.string(forKey: "mode") == Mode.loop.rawValue
     }
 
-    @objc private func toggleMode() {
-        mode = (mode == .live) ? .loop : .live
-    }
-
     @objc private func setLive() { mode = .live }
+
+    @objc private func quit() { NSApp.terminate(nil) }
     @objc private func setLoop() { mode = .loop }
 
     // MARK: Recording
@@ -256,8 +247,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         live.state = mode == .live ? .on : .off
         let loop = menu.addItem(withTitle: "Loop", action: #selector(setLoop), keyEquivalent: "")
         loop.state = mode == .loop ? .on : .off
-        let toggle = menu.addItem(withTitle: "Toggle", action: #selector(toggleMode), keyEquivalent: "l")
-        toggle.keyEquivalentModifierMask = [.control, .option, .command]
         menu.addItem(.separator())
 
         let rec = menu.addItem(withTitle: recordingCountdown != nil ? "Recording…" : processing ? "Making loop…" : "Record Loop",
@@ -281,9 +270,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let login = menu.addItem(withTitle: "Open at Login", action: #selector(toggleLoginItem), keyEquivalent: "")
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(withTitle: "Reinstall Camera Extension", action: #selector(reinstallExtension), keyEquivalent: "")
-        menu.addItem(withTitle: "Quit LoopCam", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        // Own selector rather than NSApplication.terminate(_:), which macOS 26
+        // recognizes as a standard action and decorates with an icon.
+        menu.addItem(withTitle: "Quit LoopCam", action: #selector(quit), keyEquivalent: "q")
 
-        for item in menu.items where item.action != nil && item.action != #selector(NSApplication.terminate(_:)) {
+        for item in menu.items where item.action != nil {
             item.target = self
         }
     }
