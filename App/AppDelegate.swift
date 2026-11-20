@@ -194,8 +194,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSWorkspace.shared.activateFileViewerSelecting([Self.loopURL])
     }
 
-    @objc private func reinstallExtension() { installer.activate() }
-
     @objc private func toggleLoginItem() {
         do {
             if SMAppService.mainApp.status == .enabled {
@@ -269,7 +267,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         webcamItem.submenu = webcams
         let login = menu.addItem(withTitle: "Open at Login", action: #selector(toggleLoginItem), keyEquivalent: "")
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
-        menu.addItem(withTitle: "Reinstall Camera Extension", action: #selector(reinstallExtension), keyEquivalent: "")
         // Own selector rather than NSApplication.terminate(_:), which macOS 26
         // recognizes as a standard action and decorates with an icon.
         menu.addItem(withTitle: "Quit LoopCam", action: #selector(quit), keyEquivalent: "q")
