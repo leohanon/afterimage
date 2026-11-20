@@ -1,6 +1,7 @@
 import AppKit
 import AVFoundation
 import Carbon
+import ServiceManagement
 
 enum Mode: String { case live, loop }
 
@@ -16,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private let pumpQueue = DispatchQueue(label: "loopcam.pump")
     private var pumpTimer: DispatchSourceTimer?
+    private var lastSent: CVPixelBuffer?  // only touched on pumpQueue
     private var pollTimer: Timer?
 
     private var inUse = false
@@ -53,6 +55,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.updateIcon()
         }
         installer.activate()
+
+        // Open at login by default, once; after that the menu toggle decides.
+        if !UserDefaults.standard.bool(forKey: "didSetUpLoginItem") {
+            try? SMAppService.mainApp.register()
+            UserDefaults.standard.set(true, forKey: "didSetUpLoginItem")
+        }
 
         AVCaptureDevice.requestAccess(for: .video) { _ in }
 
@@ -109,9 +117,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let t = DispatchSource.makeTimerSource(queue: pumpQueue)
         t.schedule(deadline: .now(), repeating: 1.0 / Double(LoopCam.fps), leeway: .milliseconds(2))
         t.setEventHandler { [weak self] in
-            guard let self, self.sink.isStarted else { return }
-            let frame = self.currentModeIsLoop ? self.player.currentFrame() : self.camera.latestFrame
-            if let frame { self.sink.enqueue(frame) }
+            guard let self else { return }
+            guard self.sink.isStarted else { self.lastSent = nil; return }
+            // While the new source warms up after a switch (webcam start-up,
+            // first decoded loop frame), keep showing the last frame we sent
+            // so the camera never falls back to its placeholder.
+            let fresh = self.currentModeIsLoop ? self.player.currentFrame() : self.camera.latestFrame
+            if let frame = fresh ?? self.lastSent {
+                self.lastSent = frame
+                self.sink.enqueue(frame)
+            }
         }
         t.resume()
         pumpTimer = t
@@ -190,6 +205,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func reinstallExtension() { installer.activate() }
 
+    @objc private func toggleLoginItem() {
+        do {
+            if SMAppService.mainApp.status == .enabled {
+                try SMAppService.mainApp.unregister()
+            } else {
+                try SMAppService.mainApp.register()
+            }
+        } catch {
+            showError(error)
+        }
+    }
+
     @objc private func chooseWebcam(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String else { return }
         camera.select(deviceID: id)
@@ -253,6 +280,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.target = self
         }
         webcamItem.submenu = webcams
+        let login = menu.addItem(withTitle: "Open at Login", action: #selector(toggleLoginItem), keyEquivalent: "")
+        login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(withTitle: "Reinstall Camera Extension", action: #selector(reinstallExtension), keyEquivalent: "")
         menu.addItem(withTitle: "Quit LoopCam", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 
