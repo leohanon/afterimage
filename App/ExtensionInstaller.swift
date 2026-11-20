@@ -16,11 +16,18 @@ final class ExtensionInstaller: NSObject, OSSystemExtensionRequestDelegate {
         .replace
     }
 
+    /// True while macOS is waiting for the user to switch the camera on in System Settings.
+    private(set) var needsApproval = false
+
+    static let settingsURL = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension")!
+
     func requestNeedsUserApproval(_ request: OSSystemExtensionRequest) {
-        onStatus?("Approve Afterimage in System Settings → General → Login Items & Extensions → Camera Extensions.")
+        needsApproval = true
+        onStatus?("Camera needs your approval")
     }
 
     func request(_ request: OSSystemExtensionRequest, didFinishWithResult result: OSSystemExtensionRequest.Result) {
+        needsApproval = false
         onStatus?(result == .willCompleteAfterReboot ? "Camera installed; restart your Mac to finish." : "")
     }
 

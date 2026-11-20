@@ -54,8 +54,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.menu = menu
 
         installer.onStatus = { [weak self] msg in
-            self?.installStatus = msg
-            self?.updateIcon()
+            guard let self else { return }
+            self.installStatus = msg
+            // Take the user straight to the switch they need to flip.
+            if self.installer.needsApproval { self.openExtensionSettings() }
+            self.updateIcon()
         }
         installer.activate()
 
@@ -138,6 +141,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func setLive() { mode = .live }
 
     @objc private func quit() { NSApp.terminate(nil) }
+
+    @objc private func openExtensionSettings() {
+        NSWorkspace.shared.open(ExtensionInstaller.settingsURL)
+    }
+
+    @objc private func openCameraPrivacy() {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera")!)
+    }
     @objc private func setLoop() { mode = .loop }
 
     // MARK: Recording
@@ -241,8 +252,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let header = inUse ? "In use — showing \(mode == .live ? "live webcam" : "loop")" : "Not in use"
         menu.addItem(withTitle: header, action: nil, keyEquivalent: "").isEnabled = false
-        if !installStatus.isEmpty {
+        if installer.needsApproval {
+            menu.addItem(withTitle: "Approve Camera in System Settings…", action: #selector(openExtensionSettings), keyEquivalent: "")
+        } else if !installStatus.isEmpty {
             menu.addItem(withTitle: installStatus, action: nil, keyEquivalent: "").isEnabled = false
+        }
+        let camAuth = AVCaptureDevice.authorizationStatus(for: .video)
+        if camAuth == .denied || camAuth == .restricted {
+            menu.addItem(withTitle: "Allow Webcam Access in System Settings…", action: #selector(openCameraPrivacy), keyEquivalent: "")
         }
         menu.addItem(.separator())
 
