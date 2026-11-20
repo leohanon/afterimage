@@ -17,9 +17,10 @@ final class FrameSink {
         if deviceID != 0 { return true }
         for dev in Self.allDevices() where Self.string(dev, selector: CMIOObjectPropertySelector(kCMIODevicePropertyDeviceUID)) == LoopCam.deviceUID {
             let streams: [CMIOStreamID] = Self.array(dev, selector: CMIOObjectPropertySelector(kCMIODevicePropertyStreams))
-            // Direction 1 = input to the device, i.e. our sink.
-            let sink = streams.first { Self.uint32(CMIOObjectID($0), selector: CMIOObjectPropertySelector(kCMIOStreamPropertyDirection)) == 1 }
-            guard let sink = sink ?? streams.last else { continue }
+            // CMIO direction 0 = "output" (frames flow app → device): our sink.
+            // Direction 1 is the capture stream that Zoom reads.
+            let sink = streams.first { Self.uint32(CMIOObjectID($0), selector: CMIOObjectPropertySelector(kCMIOStreamPropertyDirection)) == 0 }
+            guard let sink else { continue }
             deviceID = dev
             sinkStreamID = sink
             return true

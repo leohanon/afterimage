@@ -190,6 +190,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func reinstallExtension() { installer.activate() }
 
+    @objc private func chooseWebcam(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        camera.select(deviceID: id)
+    }
+
     // MARK: UI
 
     private var loopDate: Date? {
@@ -238,6 +243,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(withTitle: "Show Loop in Finder", action: #selector(revealLoop), keyEquivalent: "")
         }
         menu.addItem(.separator())
+        let webcamItem = menu.addItem(withTitle: "Webcam", action: nil, keyEquivalent: "")
+        let webcams = NSMenu()
+        let current = camera.currentDeviceID
+        for d in Camera.availableDevices() {
+            let item = webcams.addItem(withTitle: d.localizedName, action: #selector(chooseWebcam(_:)), keyEquivalent: "")
+            item.representedObject = d.uniqueID
+            item.state = d.uniqueID == current ? .on : .off
+            item.target = self
+        }
+        webcamItem.submenu = webcams
         menu.addItem(withTitle: "Reinstall Camera Extension", action: #selector(reinstallExtension), keyEquivalent: "")
         menu.addItem(withTitle: "Quit LoopCam", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 

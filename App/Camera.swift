@@ -20,13 +20,40 @@ final class Camera: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
 
     var isRunning: Bool { session.isRunning }
 
-    /// Picks the built-in camera if there is one, never LoopCam itself.
-    private static func pickDevice() -> AVCaptureDevice? {
-        let discovery = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.builtInWideAngleCamera, .external, .continuityCamera],
-            mediaType: .video, position: .unspecified)
-        let real = discovery.devices.filter { $0.localizedName != LoopCam.deviceName && $0.uniqueID != LoopCam.deviceUID }
-        return real.first { $0.deviceType == .builtInWideAngleCamera } ?? real.first
+    /// Every real camera (never LoopCam itself).
+    static func availableDevices() -> [AVCaptureDevice] {
+        AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.external, .builtInWideAngleCamera, .continuityCamera],
+            mediaType: .video, position: .unspecified
+        ).devices.filter { $0.localizedName != LoopCam.deviceName && $0.uniqueID != LoopCam.deviceUID }
+    }
+
+    /// The camera chosen in the menu, else a USB webcam, else the built-in one.
+    static func pickDevice() -> AVCaptureDevice? {
+        let devices = availableDevices()
+        if let id = UserDefaults.standard.string(forKey: "webcamID"), let d = devices.first(where: { $0.uniqueID == id }) {
+            return d
+        }
+        return devices.first { $0.deviceType == .external }
+            ?? devices.first { $0.deviceType == .builtInWideAngleCamera }
+            ?? devices.first
+    }
+
+    var currentDeviceID: String? {
+        (session.inputs.first as? AVCaptureDeviceInput)?.device.uniqueID ?? Self.pickDevice()?.uniqueID
+    }
+
+    /// Switches to another webcam (takes effect immediately if running).
+    func select(deviceID: String) {
+        UserDefaults.standard.set(deviceID, forKey: "webcamID")
+        queue.async {
+            guard self.configured, let device = Self.pickDevice(),
+                  let input = try? AVCaptureDeviceInput(device: device) else { return }
+            self.session.beginConfiguration()
+            self.session.inputs.forEach { self.session.removeInput($0) }
+            if self.session.canAddInput(input) { self.session.addInput(input) }
+            self.session.commitConfiguration()
+        }
     }
 
     private func configure() -> Bool {
