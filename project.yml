@@ -1,0 +1,49 @@
+name: LoopCam
+options:
+  bundleIdPrefix: com.leohanon
+  deploymentTarget:
+    macOS: "14.0"
+settings:
+  base:
+    DEVELOPMENT_TEAM: 7BR5ZAMV2Z
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: "Apple Development"
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ENABLE_HARDENED_RUNTIME: YES
+targets:
+  LoopCam:
+    type: application
+    platform: macOS
+    sources:
+      - App
+      - Shared
+    dependencies:
+      - target: LoopCamExtension
+        embed: true
+        codeSign: true
+        copy:
+          destination: plugins
+          subpath: ../Library/SystemExtensions
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.leohanon.LoopCam
+        CODE_SIGN_ENTITLEMENTS: App/LoopCam.entitlements
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_LSUIElement: YES
+        INFOPLIST_KEY_NSCameraUsageDescription: LoopCam uses your webcam for the live feed and to record your daily loop.
+        INFOPLIST_KEY_CFBundleDisplayName: LoopCam
+  LoopCamExtension:
+    type: system-extension
+    platform: macOS
+    sources:
+      - Extension
+      - Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.leohanon.LoopCam.Extension
+        PRODUCT_NAME: com.leohanon.LoopCam.Extension
+        INFOPLIST_FILE: Extension/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Extension/Extension.entitlements
+        SKIP_INSTALL: YES
