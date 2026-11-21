@@ -13,7 +13,12 @@ final class ExtensionInstaller: NSObject, OSSystemExtensionRequestDelegate {
 
     func request(_ request: OSSystemExtensionRequest, actionForReplacingExtension existing: OSSystemExtensionProperties,
                  withExtension ext: OSSystemExtensionProperties) -> OSSystemExtensionRequest.ReplacementAction {
-        .replace
+        // Reinstalling the same version makes macOS switch the camera off
+        // until the user approves it again, so only replace real updates.
+        if existing.bundleVersion == ext.bundleVersion && existing.bundleShortVersion == ext.bundleShortVersion {
+            return .cancel
+        }
+        return .replace
     }
 
     /// True while macOS is waiting for the user to switch the camera on in System Settings.
@@ -36,6 +41,13 @@ final class ExtensionInstaller: NSObject, OSSystemExtensionRequestDelegate {
 
     func request(_ request: OSSystemExtensionRequest, didFailWithError error: Error) {
         let ns = error as NSError
+        if ns.domain == OSSystemExtensionErrorDomain, ns.code == OSSystemExtensionError.requestCanceled.rawValue {
+            // We cancelled because this version is already installed.
+            needsApproval = false
+            isReady = true
+            onStatus?("")
+            return
+        }
         isReady = false
         var msg = "Camera install failed: \(error.localizedDescription)"
         if ns.domain == OSSystemExtensionErrorDomain, ns.code == OSSystemExtensionError.unsupportedParentBundleLocation.rawValue {
