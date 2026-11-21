@@ -46,6 +46,11 @@ struct SettingsView: View {
                 step(1, "Record a 10-second loop of yourself.")
                 step(2, "In Zoom, Meet, or any video app, choose **Afterimage** as your camera.")
                 step(3, "Switch between **Live** and **Loop** from the menu bar icon.")
+                Label("For the most convincing loop, record a new one right before each call, so your lighting, clothes, and background match.",
+                      systemImage: "lightbulb")
+                    .font(.callout).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 4)
             }
 
             Divider()
