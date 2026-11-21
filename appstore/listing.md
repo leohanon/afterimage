@@ -10,7 +10,7 @@ Everything to paste into App Store Connect. Screenshots are in `screenshots/` (2
 | Subtitle | Stay on camera while away |
 | Bundle ID | com.leohanon.Afterimage |
 | SKU | afterimage-mac |
-| Primary category | Video |
+| Primary category | Photo & Video |
 | Secondary category | Productivity |
 | Price | Free |
 | Age rating | 4+ (answer "None" to every question) |
