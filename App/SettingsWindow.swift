@@ -71,7 +71,7 @@ struct SettingsView: View {
                                                   set: { model.selectedWebcam = $0; model.onSelectWebcam($0) })) {
                         ForEach(model.webcams) { Text($0.name).tag($0.id) }
                     }
-                    .labelsHidden().frame(maxWidth: 220)
+                    .labelsHidden().fixedSize()  // size to the name so it sits flush right
                 }
                 row("Open at login") {
                     Toggle("", isOn: Binding(get: { model.openAtLogin },

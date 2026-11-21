@@ -1,0 +1,54 @@
+:root {
+  --bg: #fbf8f6;
+  --text: #2a1d18;
+  --muted: #6f625c;
+  --line: #eadfd9;
+  --card: #ffffff;
+  --accent: #d85a30;
+  --accent-text: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1715;
+    --text: #f3ece8;
+    --muted: #b3a7a1;
+    --line: #3a302c;
+    --card: #26201d;
+    --accent: #e4693f;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 17px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+}
+main { max-width: 680px; margin: 0 auto; padding: 48px 20px 64px; }
+a { color: var(--accent); }
+nav { display: flex; gap: 20px; font-size: 15px; margin-bottom: 40px; }
+nav a { color: var(--muted); text-decoration: none; }
+nav a:hover, nav a[aria-current] { color: var(--text); }
+h1 { font-size: 40px; line-height: 1.1; margin: 16px 0 8px; letter-spacing: -0.02em; }
+h2 { font-size: 22px; margin: 40px 0 12px; }
+h3 { font-size: 17px; margin: 24px 0 4px; }
+.tagline { font-size: 20px; color: var(--muted); margin: 0 0 28px; }
+.icon { width: 112px; height: 112px; display: block; }
+.buttons { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.button {
+  display: inline-block; padding: 12px 22px; border-radius: 12px;
+  background: var(--accent); color: var(--accent-text); text-decoration: none; font-weight: 600;
+}
+.soon { color: var(--muted); font-size: 15px; }
+.fine { color: var(--muted); font-size: 15px; margin-top: 12px; }
+ol.steps { list-style: none; counter-reset: step; padding: 0; margin: 0; }
+ol.steps li { counter-increment: step; position: relative; padding-left: 40px; margin: 12px 0; }
+ol.steps li::before {
+  content: counter(step); position: absolute; left: 0; top: 1px;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-text);
+  font-size: 14px; font-weight: 700; text-align: center; line-height: 26px;
+}
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 4px 20px 16px; margin-top: 12px; }
+footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+footer a { color: var(--muted); }
