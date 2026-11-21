@@ -1,6 +1,6 @@
 # Afterimage
 
-A tiny macOS menu-bar app that adds a **Afterimage** virtual camera. Pick it once in Zoom, then switch between your live webcam and a looping clip of yourself without Zoom ever changing cameras.
+A tiny macOS menu-bar app that adds an **Afterimage** virtual camera. Pick it once in Zoom, then switch between your live webcam and a looping clip of yourself without Zoom ever changing cameras.
 
 - **Live**: passes your real webcam through.
 - **Loop**: plays today's clip on repeat. Clips are saved as forward-then-reverse "ping-pong" loops, so there's no visible jump.
@@ -21,4 +21,9 @@ open /Applications/Afterimage.app
 
 The first launch asks you to approve the camera in **System Settings → General → Login Items & Extensions → Camera Extensions**. Then choose **Afterimage** under Zoom → Settings → Video → Camera.
 
-Loops are stored in `~/Library/Application Support/Afterimage/`.
+Loops are stored in the app's sandbox container, under `~/Library/Containers/com.leohanon.Afterimage/`.
+
+## License
+
+The code is released under the [MIT License](LICENSE). The Afterimage name and app icon are not covered by it: if you publish your own build, please give it a different name and icon.
+
