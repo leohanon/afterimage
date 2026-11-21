@@ -42,6 +42,8 @@ DETAILS
 • Honest webcam light: your real webcam only turns on while a video app is using Afterimage, or while you're recording.
 • One loop, kept small: each new recording replaces the last.
 • Lives in your menu bar and can open at login.
+• At a glance: the menu bar icon turns green when live and orange when looping.
+• Optional keyboard shortcut to switch between Live and Loop from any app.
 
 PRIVATE BY DESIGN
 Afterimage has no accounts, no analytics, and never connects to the internet. Your video stays on your Mac.
@@ -51,6 +53,11 @@ Free and open source.
 ## Keywords (100 characters max)
 
 virtual camera,webcam,loop,zoom,meet,teams,video call,meeting,away,break,remote work,facetime
+
+## What's New (version 1.1)
+
+• The menu bar icon now turns green while your call sees you live and orange while it sees your loop.
+• Set an optional keyboard shortcut in Settings to switch between Live and Loop from any app.
 
 ## What's New (version 1.0)
 

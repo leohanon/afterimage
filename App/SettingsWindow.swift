@@ -16,6 +16,8 @@ final class SettingsModel: ObservableObject {
     @Published var openAtLogin = false
     @Published var webcams: [Webcam] = []
     @Published var selectedWebcam = ""
+    @Published var shortcut: String?        // e.g. "⌃⌥L"; nil when none is set
+    @Published var recordingShortcut = false
 
     var onRecord: () -> Void = {}
     var onApprove: () -> Void = {}
@@ -23,6 +25,8 @@ final class SettingsModel: ObservableObject {
     var onRevealLoop: () -> Void = {}
     var onSelectWebcam: (String) -> Void = { _ in }
     var onSetOpenAtLogin: (Bool) -> Void = { _ in }
+    var onRecordShortcut: () -> Void = {}
+    var onClearShortcut: () -> Void = {}
 }
 
 struct SettingsView: View {
@@ -77,6 +81,23 @@ struct SettingsView: View {
                         ForEach(model.webcams) { Text($0.name).tag($0.id) }
                     }
                     .labelsHidden().fixedSize()  // size to the name so it sits flush right
+                }
+                row("Live/Loop shortcut") {
+                    VStack(alignment: .trailing, spacing: 4) {
+                        HStack {
+                            if model.shortcut != nil && !model.recordingShortcut {
+                                Button("Clear", action: model.onClearShortcut)
+                            }
+                            Button(action: model.onRecordShortcut) {
+                                Text(model.recordingShortcut ? "Press keys…" : (model.shortcut ?? "Set Shortcut…"))
+                                    .monospacedDigit()
+                                    .frame(minWidth: 90)
+                            }
+                        }
+                        Text(model.recordingShortcut ? "Use ⌘, ⌥ or ⌃ with a key. Esc to cancel."
+                                                     : "Optional. Works from any app.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
                 row("Open at login") {
                     Toggle("", isOn: Binding(get: { model.openAtLogin },

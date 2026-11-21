@@ -14,6 +14,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let installer = ExtensionInstaller()
     private let settings = SettingsModel()
     private let settingsWindow = SettingsWindowController()
+    private let hotKey = HotKey()
+    private var shortcutMonitor: Any?
 
     private let pumpQueue = DispatchQueue(label: "afterimage.pump")
     private var pumpTimer: DispatchSourceTimer?
@@ -61,6 +63,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         installer.activate()
         wireSettings()
+        hotKey.onPress = { [weak self] in self?.toggleMode() }
 
         // Open at login by default, once; after that the menu toggle decides.
         if !UserDefaults.standard.bool(forKey: "didSetUpLoginItem") {
@@ -171,6 +174,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera")!)
     }
     @objc private func setLoop() { mode = .loop }
+    private func toggleMode() { mode = mode == .live ? .loop : .live }
 
     // MARK: Recording
 
@@ -259,6 +263,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         settings.onRevealLoop = { [weak self] in self?.revealLoop() }
         settings.onSelectWebcam = { [weak self] id in self?.camera.select(deviceID: id) }
         settings.onSetOpenAtLogin = { [weak self] on in self?.setOpenAtLogin(on) }
+        settings.onRecordShortcut = { [weak self] in self?.startRecordingShortcut() }
+        settings.onClearShortcut = { [weak self] in self?.hotKey.set(nil); self?.syncSettings() }
+    }
+
+    /// Captures the next key press in the settings window as the Live/Loop shortcut.
+    private func startRecordingShortcut() {
+        if shortcutMonitor != nil { stopRecordingShortcut(); return }  // clicking again cancels
+        hotKey.suspend()
+        settings.recordingShortcut = true
+        shortcutMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else { return event }
+            if event.keyCode == 53 {  // Esc
+                self.stopRecordingShortcut()
+            } else if let combo = HotKey.combo(from: event) {
+                self.hotKey.set(combo)
+                self.stopRecordingShortcut()
+            } else {
+                NSSound.beep()
+            }
+            return nil
+        }
+    }
+
+    private func stopRecordingShortcut() {
+        if let m = shortcutMonitor { NSEvent.removeMonitor(m) }
+        shortcutMonitor = nil
+        settings.recordingShortcut = false
+        hotKey.resume()
+        syncSettings()
     }
 
     private func syncSettings() {
@@ -282,6 +315,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         settings.canRecord = recordingCountdown == nil && !processing
         settings.openAtLogin = SMAppService.mainApp.status == .enabled
         settings.selectedWebcam = camera.currentDeviceID ?? ""
+        settings.shortcut = hotKey.combo?.display
     }
 
     @objc private func chooseWebcam(_ sender: NSMenuItem) {
@@ -298,15 +332,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func updateIcon() {
         syncSettings()
         guard let button = statusItem?.button else { return }
+        button.imagePosition = .imageLeading
         if let c = recordingCountdown {
             button.image = NSImage(systemSymbolName: "record.circle.fill", accessibilityDescription: "Recording")
             button.title = " \(c)"
             return
         }
+        // Three states you can tell apart at a glance:
+        //   nothing watching → normal glyph
+        //   showing live     → white glyph on green
+        //   showing the loop → white glyph on orange
         button.title = processing ? " …" : ""
-        switch mode {
-        case .live: button.image = MenuIcon.image(inUse ? .liveActive : .liveIdle)
-        case .loop: button.image = MenuIcon.image(inUse ? .loopActive : .loopIdle)
+        switch (inUse, mode) {
+        case (false, _):
+            button.image = MenuIcon.image(mode == .live ? .liveIdle : .loopIdle)
+            button.toolTip = "Afterimage: no app is using the camera (\(mode == .live ? "Live" : "Loop") is selected)"
+        case (true, .live):
+            button.image = MenuIcon.highlighted(.liveActive, color: MenuIcon.liveColor)
+            button.toolTip = "Afterimage: showing your live webcam"
+        case (true, .loop):
+            button.image = MenuIcon.highlighted(.loopActive, color: MenuIcon.loopColor)
+            button.toolTip = "Afterimage: showing your loop"
         }
     }
 
