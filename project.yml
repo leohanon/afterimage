@@ -37,7 +37,7 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Afterimage
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.video
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
-        INFOPLIST_KEY_NSHumanReadableCopyright: Copyright © 2026 Leonardo Hanon. MIT License.
+        INFOPLIST_KEY_NSHumanReadableCopyright: Copyright © 2026 Guayaba Games LLC. MIT License.
   AfterimageExtension:
     type: system-extension
     platform: macOS
