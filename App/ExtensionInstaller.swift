@@ -18,6 +18,8 @@ final class ExtensionInstaller: NSObject, OSSystemExtensionRequestDelegate {
 
     /// True while macOS is waiting for the user to switch the camera on in System Settings.
     private(set) var needsApproval = false
+    /// True once macOS reports the camera is installed and switched on.
+    private(set) var isReady = false
 
     static let settingsURL = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension")!
 
@@ -28,11 +30,13 @@ final class ExtensionInstaller: NSObject, OSSystemExtensionRequestDelegate {
 
     func request(_ request: OSSystemExtensionRequest, didFinishWithResult result: OSSystemExtensionRequest.Result) {
         needsApproval = false
+        isReady = result == .completed
         onStatus?(result == .willCompleteAfterReboot ? "Camera installed; restart your Mac to finish." : "")
     }
 
     func request(_ request: OSSystemExtensionRequest, didFailWithError error: Error) {
         let ns = error as NSError
+        isReady = false
         var msg = "Camera install failed: \(error.localizedDescription)"
         if ns.domain == OSSystemExtensionErrorDomain, ns.code == OSSystemExtensionError.unsupportedParentBundleLocation.rawValue {
             msg = "Move Afterimage.app to /Applications, then reopen it."

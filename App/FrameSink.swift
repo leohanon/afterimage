@@ -28,6 +28,11 @@ final class FrameSink {
         return false
     }
 
+    /// Whether the Afterimage camera is visible to apps (installed and switched on).
+    static func isDevicePresent() -> Bool {
+        allDevices().contains { string($0, selector: CMIOObjectPropertySelector(kCMIODevicePropertyDeviceUID)) == CamConfig.deviceUID }
+    }
+
     /// True while some other app (Zoom, etc.) is streaming from Afterimage.
     func isCameraInUse() -> Bool {
         guard connect() else { return false }
@@ -60,8 +65,9 @@ final class FrameSink {
         isStarted = false
     }
 
-    /// If the extension was reinstalled, the cached IDs go stale; forget them.
-    private func reset() {
+    /// Turning the camera off and on (or reinstalling it) gives it new IDs,
+    /// so the cached ones go stale; forget them and look it up again.
+    func reset() {
         queue = nil
         deviceID = 0
         sinkStreamID = 0

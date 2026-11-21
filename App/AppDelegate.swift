@@ -12,6 +12,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let player = LoopPlayer()
     private let sink = FrameSink()
     private let installer = ExtensionInstaller()
+    private let settings = SettingsModel()
+    private let settingsWindow = SettingsWindowController()
 
     private let pumpQueue = DispatchQueue(label: "afterimage.pump")
     private var pumpTimer: DispatchSourceTimer?
@@ -19,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var pollTimer: Timer?
 
     private var inUse = false
+    private var cameraPresent = false
     private var recordingCountdown: Int?
     private var processing = false
     private var installStatus = ""
@@ -34,12 +37,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     static var supportDir: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        // Inside the app's sandbox container.
         let dir = base.appendingPathComponent("Afterimage", isDirectory: true)
-        // Carry over the loop recorded under the app's old name (LoopCam).
-        let old = base.appendingPathComponent("LoopCam", isDirectory: true)
-        if !FileManager.default.fileExists(atPath: dir.path), FileManager.default.fileExists(atPath: old.path) {
-            try? FileManager.default.moveItem(at: old, to: dir)
-        }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
@@ -61,6 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self.updateIcon()
         }
         installer.activate()
+        wireSettings()
 
         // Open at login by default, once; after that the menu toggle decides.
         if !UserDefaults.standard.bool(forKey: "didSetUpLoginItem") {
@@ -76,6 +76,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in self?.poll() }
         poll()
         updateIcon()
+
+        // First launch: explain how it works.
+        if !UserDefaults.standard.bool(forKey: "didShowWelcome") {
+            UserDefaults.standard.set(true, forKey: "didShowWelcome")
+            showSettings()
+        }
+    }
+
+    /// Opening the app again (Finder, Launchpad, Spotlight) shows the settings window.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showSettings()
+        return true
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -87,6 +99,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Checks whether Zoom (or anything) is watching Afterimage and starts or
     /// stops the real webcam accordingly, so its light is only on during calls.
     private func poll() {
+        let present = FrameSink.isDevicePresent()
+        if present != cameraPresent {
+            cameraPresent = present
+            // The camera came back with new IDs: reconnect instead of
+            // sending frames to the old one.
+            pumpQueue.sync { sink.stop(); sink.reset() }
+            inUse = false  // re-checked just below, which restarts the feed if needed
+            updateIcon()
+        }
         let nowInUse = sink.isCameraInUse()
         if nowInUse != inUse {
             inUse = nowInUse
@@ -211,15 +232,56 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func toggleLoginItem() {
+        setOpenAtLogin(SMAppService.mainApp.status != .enabled)
+    }
+
+    private func setOpenAtLogin(_ on: Bool) {
         do {
-            if SMAppService.mainApp.status == .enabled {
-                try SMAppService.mainApp.unregister()
-            } else {
-                try SMAppService.mainApp.register()
-            }
+            if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
         } catch {
             showError(error)
         }
+        syncSettings()
+    }
+
+    // MARK: Settings window
+
+    @objc private func showSettings() {
+        settings.webcams = Camera.availableDevices().map { .init(id: $0.uniqueID, name: $0.localizedName) }
+        syncSettings()
+        settingsWindow.show(model: settings)
+    }
+
+    private func wireSettings() {
+        settings.onRecord = { [weak self] in self?.recordLoop() }
+        settings.onApprove = { [weak self] in self?.openExtensionSettings() }
+        settings.onAllowWebcam = { [weak self] in self?.openCameraPrivacy() }
+        settings.onRevealLoop = { [weak self] in self?.revealLoop() }
+        settings.onSelectWebcam = { [weak self] id in self?.camera.select(deviceID: id) }
+        settings.onSetOpenAtLogin = { [weak self] on in self?.setOpenAtLogin(on) }
+    }
+
+    private func syncSettings() {
+        if installer.needsApproval {
+            settings.cameraStatus = .needsApproval
+        } else if cameraPresent {
+            settings.cameraStatus = .ready
+        } else if installer.isReady {
+            // Installed, but switched off in System Settings.
+            settings.cameraStatus = .turnedOff
+        } else if !installStatus.isEmpty {
+            settings.cameraStatus = .problem(installStatus)
+        } else {
+            settings.cameraStatus = .checking
+        }
+        let auth = AVCaptureDevice.authorizationStatus(for: .video)
+        settings.webcamDenied = auth == .denied || auth == .restricted
+        settings.hasLoop = loopDate != nil
+        settings.loopText = loopDescription()
+        settings.recordTitle = recordingCountdown.map { "Recording… \($0)" } ?? (processing ? "Making loop…" : "Record Loop")
+        settings.canRecord = recordingCountdown == nil && !processing
+        settings.openAtLogin = SMAppService.mainApp.status == .enabled
+        settings.selectedWebcam = camera.currentDeviceID ?? ""
     }
 
     @objc private func chooseWebcam(_ sender: NSMenuItem) {
@@ -234,6 +296,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func updateIcon() {
+        syncSettings()
         guard let button = statusItem?.button else { return }
         if let c = recordingCountdown {
             button.image = NSImage(systemSymbolName: "record.circle.fill", accessibilityDescription: "Recording")
@@ -254,6 +317,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(withTitle: header, action: nil, keyEquivalent: "").isEnabled = false
         if installer.needsApproval {
             menu.addItem(withTitle: "Approve Camera in System Settings…", action: #selector(openExtensionSettings), keyEquivalent: "")
+        } else if installer.isReady && !cameraPresent {
+            menu.addItem(withTitle: "Turn On Camera in System Settings…", action: #selector(openExtensionSettings), keyEquivalent: "")
         } else if !installStatus.isEmpty {
             menu.addItem(withTitle: installStatus, action: nil, keyEquivalent: "").isEnabled = false
         }
@@ -291,6 +356,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         // Own selector rather than NSApplication.terminate(_:), which macOS 26
         // recognizes as a standard action and decorates with an icon.
+        menu.addItem(withTitle: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
         menu.addItem(withTitle: "Quit Afterimage", action: #selector(quit), keyEquivalent: "q")
 
         for item in menu.items where item.action != nil {
