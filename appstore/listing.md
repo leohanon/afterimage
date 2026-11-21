@@ -6,7 +6,7 @@ Everything to paste into App Store Connect. Screenshots are in `screenshots/` (2
 
 | Field | Value |
 |---|---|
-| Name | Afterimage |
+| Name | Afterimage: Loop Camera ("Afterimage" alone was taken) |
 | Subtitle | Stay on camera while away |
 | Bundle ID | com.leohanon.Afterimage |
 | SKU | afterimage-mac |
