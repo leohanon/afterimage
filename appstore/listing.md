@@ -14,7 +14,7 @@ Everything to paste into App Store Connect. Screenshots are in `screenshots/` (2
 | Secondary category | Productivity |
 | Price | Free |
 | Age rating | 4+ (answer "None" to every question) |
-| Copyright | 2026 Leonardo Hanon |
+| Copyright | 2026 Guayaba Games LLC |
 | Support URL | https://leohanon.github.io/afterimage/support.html |
 | Marketing URL | https://leohanon.github.io/afterimage/ |
 | Privacy Policy URL | https://leohanon.github.io/afterimage/privacy.html |
