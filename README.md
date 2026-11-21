@@ -19,7 +19,7 @@ cp -R build/Build/Products/Release/Afterimage.app /Applications/
 open /Applications/Afterimage.app
 ```
 
-The first launch asks you to approve the camera in **System Settings → General → Login Items & Extensions → Camera Extensions**. Then choose **Afterimage** under Zoom → Settings → Video → Camera.
+The first launch asks you to approve the camera in **System Settings → General → Login Items & Extensions → Camera Extensions**. Then choose **Afterimage** under Zoom → Settings → Video → Camera. If Zoom (or any video app) was already open, quit it completely and reopen it first: apps only look for cameras when they start.
 
 Loops are stored in the app's sandbox container, under `~/Library/Containers/com.leohanon.Afterimage/`.
 

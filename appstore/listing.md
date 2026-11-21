@@ -31,7 +31,7 @@ Afterimage adds a camera to your Mac that shows either your live webcam or a sho
 
 HOW IT WORKS
 1. Record a 10-second loop of yourself from the menu bar.
-2. In your video app, choose Afterimage as your camera.
+2. In your video app, choose Afterimage as your camera. If it isn't listed, quit the app completely and reopen it.
 3. Switch between Live and Loop anytime.
 
 TIP

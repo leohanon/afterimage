@@ -30,9 +30,27 @@ final class Normalizer {
            CVPixelBufferGetPixelFormatType(src) == kCVPixelFormatType_32BGRA {
             return src
         }
+        cropToOutputAspect(src)
         var dst: CVPixelBuffer?
         CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &dst)
         guard let dst, VTPixelTransferSessionTransferImage(session, from: src, to: dst) == noErr else { return nil }
         return dst
+    }
+
+    /// Marks a centered 16:9 region of the source as its clean aperture, so the
+    /// transfer (which crops to the clean aperture) fills the frame without
+    /// stretching a 4:3 or otherwise non-widescreen picture.
+    private func cropToOutputAspect(_ src: CVPixelBuffer) {
+        let w = Double(CVPixelBufferGetWidth(src)), h = Double(CVPixelBufferGetHeight(src))
+        let target = Double(CamConfig.width) / Double(CamConfig.height)
+        var cw = w, ch = h
+        if w / h > target { cw = (h * target).rounded() } else { ch = (w / target).rounded() }
+        let aperture: [CFString: Any] = [
+            kCVImageBufferCleanApertureWidthKey: cw,
+            kCVImageBufferCleanApertureHeightKey: ch,
+            kCVImageBufferCleanApertureHorizontalOffsetKey: 0,
+            kCVImageBufferCleanApertureVerticalOffsetKey: 0,
+        ]
+        CVBufferSetAttachment(src, kCVImageBufferCleanApertureKey, aperture as CFDictionary, .shouldPropagate)
     }
 }

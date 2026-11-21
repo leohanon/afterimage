@@ -44,7 +44,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("How it works").font(.headline)
                 step(1, "Record a 10-second loop of yourself.")
-                step(2, "In Zoom, Meet, or any video app, choose **Afterimage** as your camera.")
+                step(2, "In Zoom, Meet, or any video app, choose **Afterimage** as your camera. Not listed? Quit that app completely and reopen it.")
                 step(3, "Switch between **Live** and **Loop** from the menu bar icon.")
                 Label("For the most convincing loop, record a new one right before each call, so your lighting, clothes, and background match.",
                       systemImage: "lightbulb")
@@ -95,7 +95,13 @@ struct SettingsView: View {
             case .checking:
                 Text("Checking…").foregroundStyle(.secondary)
             case .ready:
-                Label("Ready", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                VStack(alignment: .trailing, spacing: 4) {
+                    Label("Ready", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    Text("Video apps that were already open need to be quit and reopened to see it.")
+                        .font(.caption).foregroundStyle(.secondary)
+                        .multilineTextAlignment(.trailing)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             case .needsApproval:
                 VStack(alignment: .trailing, spacing: 4) {
                     Button("Approve in System Settings…", action: model.onApprove)
