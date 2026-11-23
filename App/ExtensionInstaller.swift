@@ -18,6 +18,7 @@ final class ExtensionInstaller: NSObject, OSSystemExtensionRequestDelegate {
         if existing.bundleVersion == ext.bundleVersion && existing.bundleShortVersion == ext.bundleShortVersion {
             return .cancel
         }
+        replaced = true
         return .replace
     }
 
@@ -25,18 +26,30 @@ final class ExtensionInstaller: NSObject, OSSystemExtensionRequestDelegate {
     private(set) var needsApproval = false
     /// True once macOS reports the camera is installed and switched on.
     private(set) var isReady = false
+    /// True once macOS has answered the install request, so any update of the
+    /// camera has finished and it's safe to connect to it.
+    private(set) var isSettled = false
+    private var replaced = false
 
     static let settingsURL = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension")!
 
     func requestNeedsUserApproval(_ request: OSSystemExtensionRequest) {
         needsApproval = true
+        isSettled = true
         onStatus?("Camera needs your approval")
     }
 
     func request(_ request: OSSystemExtensionRequest, didFinishWithResult result: OSSystemExtensionRequest.Result) {
         needsApproval = false
         isReady = result == .completed
-        onStatus?(result == .willCompleteAfterReboot ? "Camera installed; restart your Mac to finish." : "")
+        let msg = result == .willCompleteAfterReboot ? "Camera installed; restart your Mac to finish." : ""
+        guard replaced else { isSettled = true; onStatus?(msg); return }
+        // macOS reports an update as done while the new camera is still
+        // starting up; connecting that early fails until the app relaunches.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            self?.isSettled = true
+            self?.onStatus?(msg)
+        }
     }
 
     func request(_ request: OSSystemExtensionRequest, didFailWithError error: Error) {
@@ -45,10 +58,12 @@ final class ExtensionInstaller: NSObject, OSSystemExtensionRequestDelegate {
             // We cancelled because this version is already installed.
             needsApproval = false
             isReady = true
+            isSettled = true
             onStatus?("")
             return
         }
         isReady = false
+        isSettled = true
         var msg = "Camera install failed: \(error.localizedDescription)"
         if ns.domain == OSSystemExtensionErrorDomain, ns.code == OSSystemExtensionError.unsupportedParentBundleLocation.rawValue {
             msg = "Move Afterimage.app to /Applications, then reopen it."

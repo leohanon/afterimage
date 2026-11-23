@@ -48,3 +48,21 @@ extension MenuIcon {
         return img
     }
 }
+
+extension MenuIcon {
+    /// The glyph in white on a filled circle, for the on-screen popup and Settings.
+    static func badge(_ glyph: IconArt.Glyph, color: NSColor, side: CGFloat) -> NSImage {
+        NSImage(size: NSSize(width: side, height: side), flipped: true) { rect in
+            color.setFill()
+            NSBezierPath(ovalIn: rect).fill()
+            guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
+            let g = side * 0.62
+            ctx.translateBy(x: (side - g) / 2, y: (side - g) / 2)
+            ctx.scaleBy(x: g / 112, y: g / 112)
+            ctx.setFillColor(NSColor.white.cgColor)
+            ctx.setStrokeColor(NSColor.white.cgColor)
+            IconArt.drawGlyph(glyph, in: ctx)
+            return true
+        }
+    }
+}

@@ -7,7 +7,7 @@ A tiny macOS menu-bar app that adds an **Afterimage** virtual camera. Pick it on
 - **Record Loop**: records 10 s from your webcam and builds the loop. Each new loop replaces the previous one, so only one file is ever kept.
 - The real webcam only runs while some app is actually using Afterimage.
 - The menu-bar icon turns **green** while a call sees your live webcam and **orange** while it sees your loop.
-- Optional keyboard shortcut (in Settings) switches between Live and Loop from any app.
+- Optional keyboard shortcut (in Settings) switches between Live and Loop from any app, with a brief on-screen confirmation, so it works even when a crowded menu bar hides the icon. Settings also has a Live/Loop switch.
 
 ## Build & install
 

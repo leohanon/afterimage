@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let settings = SettingsModel()
     private let settingsWindow = SettingsWindowController()
     private let hotKey = HotKey()
+    private let hud = ModeHUD()
     private var shortcutMonitor: Any?
 
     private let pumpQueue = DispatchQueue(label: "afterimage.pump")
@@ -23,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var pollTimer: Timer?
 
     private var inUse = false
+    private let launchDate = Date()
     private var cameraPresent = false
     private var recordingCountdown: Int?
     private var processing = false
@@ -102,6 +104,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Checks whether Zoom (or anything) is watching Afterimage and starts or
     /// stops the real webcam accordingly, so its light is only on during calls.
     private func poll() {
+        // Don't touch the camera while macOS may still be swapping in an
+        // updated one: connecting to the outgoing camera leaves this process
+        // unable to see the new one until the app is relaunched.
+        guard installer.isSettled || Date().timeIntervalSince(launchDate) > 20 else { return }
         let present = FrameSink.isDevicePresent()
         if present != cameraPresent {
             cameraPresent = present
@@ -174,7 +180,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera")!)
     }
     @objc private func setLoop() { mode = .loop }
-    private func toggleMode() { mode = mode == .live ? .loop : .live }
+    private func toggleMode() {
+        mode = mode == .live ? .loop : .live
+        hud.show(loop: mode == .loop, inUse: inUse)
+    }
 
     // MARK: Recording
 
@@ -263,6 +272,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         settings.onRevealLoop = { [weak self] in self?.revealLoop() }
         settings.onSelectWebcam = { [weak self] id in self?.camera.select(deviceID: id) }
         settings.onSetOpenAtLogin = { [weak self] on in self?.setOpenAtLogin(on) }
+        settings.onSetLoop = { [weak self] loop in self?.mode = loop ? .loop : .live }
         settings.onRecordShortcut = { [weak self] in self?.startRecordingShortcut() }
         settings.onClearShortcut = { [weak self] in self?.hotKey.set(nil); self?.syncSettings() }
     }
@@ -314,8 +324,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         settings.recordTitle = recordingCountdown.map { "Recording… \($0)" } ?? (processing ? "Making loop…" : "Record Loop")
         settings.canRecord = recordingCountdown == nil && !processing
         settings.openAtLogin = SMAppService.mainApp.status == .enabled
-        settings.selectedWebcam = camera.currentDeviceID ?? ""
+        // Looking up webcams connects to the camera system; wait until any camera update is done (see poll()).
+        if installer.isSettled { settings.selectedWebcam = camera.currentDeviceID ?? "" }
         settings.shortcut = hotKey.combo?.display
+        settings.showingLoop = mode == .loop
+        settings.inUse = inUse
     }
 
     @objc private func chooseWebcam(_ sender: NSMenuItem) {

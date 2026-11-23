@@ -54,6 +54,13 @@ Free and open source.
 
 virtual camera,webcam,loop,zoom,meet,teams,video call,meeting,away,break,remote work,facetime
 
+## What's New (version 1.1.1)
+
+• The menu bar icon now turns green while your call sees you live and orange while it sees your loop.
+• Set an optional keyboard shortcut in Settings to switch between Live and Loop from any app. A brief on-screen badge confirms the switch, even if a full menu bar hides the icon.
+• Settings now has a Live/Loop switch too.
+• Fixes a blank picture right after updating Afterimage.
+
 ## What's New (version 1.1)
 
 • The menu bar icon now turns green while your call sees you live and orange while it sees your loop.

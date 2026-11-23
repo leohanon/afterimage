@@ -18,6 +18,8 @@ final class SettingsModel: ObservableObject {
     @Published var selectedWebcam = ""
     @Published var shortcut: String?        // e.g. "⌃⌥L"; nil when none is set
     @Published var recordingShortcut = false
+    @Published var showingLoop = false
+    @Published var inUse = false
 
     var onRecord: () -> Void = {}
     var onApprove: () -> Void = {}
@@ -25,6 +27,7 @@ final class SettingsModel: ObservableObject {
     var onRevealLoop: () -> Void = {}
     var onSelectWebcam: (String) -> Void = { _ in }
     var onSetOpenAtLogin: (Bool) -> Void = { _ in }
+    var onSetLoop: (Bool) -> Void = { _ in }
     var onRecordShortcut: () -> Void = {}
     var onClearShortcut: () -> Void = {}
 }
@@ -49,7 +52,7 @@ struct SettingsView: View {
                 Text("How it works").font(.headline)
                 step(1, "Record a 10-second loop of yourself.")
                 step(2, "In Zoom, Meet, or any video app, choose **Afterimage** as your camera. Not listed? Quit that app completely and reopen it.")
-                step(3, "Switch between **Live** and **Loop** from the menu bar icon.")
+                step(3, "Switch between **Live** and **Loop** from the menu bar icon, the switch below, or your shortcut.")
                 Label("For the most convincing loop, record a new one right before each call, so your lighting, clothes, and background match.",
                       systemImage: "lightbulb")
                     .font(.callout).foregroundStyle(.secondary)
@@ -60,6 +63,24 @@ struct SettingsView: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 12) {
+                row("Show") {
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Picker("", selection: Binding(get: { model.showingLoop },
+                                                      set: { model.onSetLoop($0) })) {
+                            Text("Live").tag(false)
+                            Text("Loop").tag(true)
+                        }
+                        .labelsHidden().pickerStyle(.segmented).fixedSize()
+                        HStack(spacing: 5) {
+                            Circle().fill(model.inUse ? (model.showingLoop ? Color(nsColor: MenuIcon.loopColor) : .green)
+                                                      : Color.secondary.opacity(0.5))
+                                .frame(width: 7, height: 7)
+                            Text(model.inUse ? (model.showingLoop ? "Your call sees the loop" : "Your call sees you live")
+                                             : "No call is using Afterimage")
+                        }
+                        .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
                 cameraRow
                 if model.webcamDenied {
                     row("Webcam") {
